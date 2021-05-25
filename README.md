@@ -17,7 +17,7 @@
 
 ### Python相关
 
-1. [【python技巧】用乘法初始化list的坑](https://github.com/Mrliduanyang/zhouzhou/blob/main/Python/[python技巧]用乘法初始化list的坑.md)
+1. [【python技巧】用乘法初始化list的坑](https://github.com/Mrliduanyang/zhouzhou/blob/main/Python/用乘法初始化list的坑.md)
 
 ### 前端相关
 
