@@ -30,15 +30,16 @@
 
 ### 算法
 
-1. [二叉树遍历的统一写法](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/二叉树遍历的统一写法.md)
-2. [单调队列](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/单调队列.md)
-3. [双递归](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/双递归.md)
-4. [回溯法](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/回溯法.md)
-5. [序列化和反序列化树](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/序列化和反序列化树.md)
-6. [排序专题](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/排序专题.md)
-7. [最近公共祖先](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/最近公共祖先.md)
-8. [用于寻找回文串的Manacher算法](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/用于寻找回文串的Manacher算法.md)
-9. [递归问题解题技巧](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/递归写法.md)
+1. [手搓编译器](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/手搓编译器.md)
+2. [二叉树遍历的统一写法](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/二叉树遍历的统一写法.md)
+3. [单调队列](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/单调队列.md)
+4. [双递归](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/双递归.md)
+5. [回溯法](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/回溯法.md)
+6. [序列化和反序列化树](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/序列化和反序列化树.md)
+7. [排序专题](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/排序专题.md)
+8. [最近公共祖先](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/最近公共祖先.md)
+9. [用于寻找回文串的Manacher算法](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/用于寻找回文串的Manacher算法.md)
+10. [递归问题解题技巧](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/递归写法.md)
 
 ### 杂七杂八
 
