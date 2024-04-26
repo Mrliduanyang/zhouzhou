@@ -1,0 +1,458 @@
+# 手搓编译器
+
+本文手搓了一个JavaScript到JSON的编译器。先别奇怪，这不是一个`JSON.stringify`就能实现的吗？怎么还搞上编译器了呢。原因有两点：
+1. JSON语法足够简单，确保手搓出来的编译器代码不会太复杂；
+2. JavaScript源码和JSON有些差异，使得代码生成阶段有事可做。
+
+本文代码实现基于[https://github.com/jamiebuilds/the-super-tiny-compiler](https://github.com/jamiebuilds/the-super-tiny-compiler)，加入了自己的理解，并且实现的功能相比于原文将类似于LISP的函数调用编译成类似于C的函数调用而言要更加复杂，能更好的帮助读者理解编译器的细节。
+
+原文的翻译版地址在[https://github.com/YongzeYao/the-super-tiny-compiler-CN](https://github.com/YongzeYao/the-super-tiny-compiler-CN)，感兴趣的读者可以先看这篇，递归算法基础扎实的话，20分钟可以掌握。本文创作过程中有参考翻译版中的内容。
+
+对递归思想理解有困难的话，可以先看看往期分享：
+- [https://mp.weixin.qq.com/s/b4Na-_RSTk_HmnVtOh_1OA](https://mp.weixin.qq.com/s/b4Na-_RSTk_HmnVtOh_1OA)
+- [https://mp.weixin.qq.com/s/q6e-BPoRNAvjWP-pEsqkig](https://mp.weixin.qq.com/s/q6e-BPoRNAvjWP-pEsqkig)
+
+## 0.前言
+
+想当年，我在学编译原理这门课的时候，就感觉那些名词、那些话是人能看懂的？什么短语、句柄、规约、LR分析，这都是啥。
+
+随着计算机知识的增加，又知道大部分编译器的工作可以被分解为三个主要阶段：
+- 解析（Parsing）
+- 转化（Transformation）
+- 代码生成（Code Generation）。
+
+先说解析，一般被分为两个部分：词法分析和语法分析。词法分析将源代码分解成一个个词素，它可以描述数字，标识符，标点符号，运算符等。
+
+语法分析接收词素并将它们组合成一个描述源代码各部分之间关系的中间表达形式：抽象语法树。抽象语法树是一个深度嵌套的对象，这个对象以一种既能够简单地操作又提供很多关于源代码信息的形式来展现代码。
+
+转换阶段过程接收解析生成的抽象语法树并对它做出改动。转换阶段可以改变抽象语法树使代码保持在同一个语言或者编译成另外一门语言。
+
+编译器的最后步骤是代码生成。有时候编译器在这个步骤也会执行转换阶段的一些行为，但是大体而言代码生成阶段的工作就是基于转换步骤产生的抽象语法树生成目标代码。
+
+想想整个编译的过程也很符合直觉，假如现在想描述一个小狗，那以小狗作为树的根节点，叶子节点就可以是头、四肢、躯干等，头又细分到五官，沿着各个节点继续向下生长，最终得到一个树形描述。
+
+假如想得到一个小金毛的描述，那就沿着树，开始搜索，当搜索到躯干时，给表示躯干的节点添加一个描述“金色毛发”，这样就得到一个转化后的树形描述。最后，再按照这个描述将“小狗”组合起来就可以知道小金毛到底是个什么样子。
+
+抛开教材上艰深晦涩的编译原理，从代码实现上来手搓一个编译器，会对编译这个过程有更加深刻的理解。
+
+## 1.进入正题
+
+我们的目标是实现一个从JavaScript到JSON的代码转换器，主要就是给JavaScript中的标识符加上双引号。
+
+### JavaScript源代码
+
+```javascript
+const jsSourceCode = `{
+  aaa: 1,
+  bbb: [
+    2,
+    3,
+    4,
+    {
+      cc: {
+        d: "My Compiler",
+      },
+    },
+  ],
+  eeeee: {
+    ffffff: {
+      gg: 5,
+      hhhh: 6,
+    },
+  },
+}`;
+```
+
+### 词法分析
+
+```javascript
+// 我们的目的是把JS转为对应JSON，所以只需处理源代码中的六个构造字符{}[]:,
+// 以及字符串、数字、标识符（其实也是字符串，出现在：前的字符串）
+// 三个字面值(false、null、true)我们先不考虑
+function tokenizer(input) {
+  // 指针位置
+  let current = 0;
+  let tokens = [];
+  // 扫描字符串，源代码可以看做一个字符序列，从头扫描到尾一遍，因此使用while即可
+  while (current < input.length) {
+    // 当前字符
+    let char = input[current];
+    // 识别左大括号
+    if (char === "{") {
+      tokens.push({
+        type: "Punctuator",
+        value: "{",
+      });
+      current++;
+      continue;
+    }
+    // 识别右大括号
+    if (char === "}") {
+      tokens.push({
+        type: "Punctuator",
+        value: "}",
+      });
+      current++;
+      continue;
+    }
+
+    if (char === "[") {
+      tokens.push({
+        type: "Punctuator",
+        value: "[",
+      });
+      current++;
+      continue;
+    }
+
+    if (char === "]") {
+      tokens.push({
+        type: "Punctuator",
+        value: "]",
+      });
+      current++;
+      continue;
+    }
+
+    if (char === ":") {
+      tokens.push({
+        type: "Punctuator",
+        value: ":",
+      });
+      current++;
+      continue;
+    }
+
+    if (char === ",") {
+      tokens.push({
+        type: "Punctuator",
+        value: ",",
+      });
+      current++;
+      continue;
+    }
+    // 看懂以上单个符号的识别判断应该毫无压力
+    
+    // 跳过源代码中无意义的空字符，比如：空格
+    let WHITESPACE = /\s/;
+    if (WHITESPACE.test(char)) {
+      current++;
+      continue;
+    }
+    
+    // 识别数字，简单处理，不搞花里胡哨，就最简单的判断数字序列
+    // 哪怕它是个007，也认为是个合法的数字
+    let NUMBERS = /[0-9]/;
+    if (NUMBERS.test(char)) {
+      let value = "";
+      while (NUMBERS.test(char)) {
+        value += char;
+        char = input[++current];
+      }
+      tokens.push({ type: "Numeric", value });
+      continue;
+    }
+
+    // 识别字符串，简单处理，用""包裹的内容视为字符串
+    if (char === '"') {
+      // 生成词素时，定义字符串以"开头，因此添加一个"
+      let value = '"';
+      char = input[++current];
+      // 到尾"之前的内容，不管是什么，都是当前词素的组成
+      while (char !== '"') {
+        value += char;
+        char = input[++current];
+      }
+      // 定义字符串以"结尾，因此添加一个"
+      value += '"';
+      // 跳过源代码中的"
+      // 操作看似有点多余，上一行加一个"，这一行又要跳过
+      // 但想一下，如果源代码中的字符串是''包裹的，这里的处理就很有必要了
+      char = input[++current];
+
+      tokens.push({ type: "String", value });
+      continue;
+    }
+
+    // 识别标识符，简单处理，不搞花里胡哨，就只有大小写字母，不管_什么的
+    let LETTERS = /[a-z]/i;
+    if (LETTERS.test(char)) {
+      let value = "";
+      // 连续的大小写字母序列，就是一个标识符
+      while (LETTERS.test(char)) {
+        value += char;
+        char = input[++current];
+      }
+
+      tokens.push({ type: "Identifier", value });
+      continue;
+    }
+
+    throw new TypeError("I dont know what this character is: " + char);
+  }
+  return tokens;
+}
+```
+
+### 语法分析
+
+```javascript
+function parser(tokens) {
+  // 指针位置，用来建立抽象语法树和词素列表的联系
+  // 告诉walk递归函数，当游走到抽象语法树的某个位置时，当前的词素是哪一个
+  let current = 0;
+
+  // 想一下人是怎么读代码的，假如读到一个有子结构的地方，是不是要深入到子结构内部，直到把整个子结构读完了，才能返回，继续往下读
+  // 这里很显然是一个深度优先的思想，所以我们用递归来实现
+  // 用递归来实现的话，只需要想清楚一层要怎么处理，至于涉及到的子结构，交给递归去处理
+  function walk() {
+    // 当前词素
+    let token = tokens[current];
+
+    // 递归结束条件，当词素类型是数字或者字符串的时候，就已经是最小结构了，直接返回对应节点
+    // 检测是否是数字
+    if (token.type === "Numeric") {
+      current++;
+      return {
+        type: "Literal",
+        value: token.value,
+      };
+    }
+
+    // 检测是否是字符串
+    if (token.type === "String") {
+      current++;
+      return {
+        type: "Literal",
+        value: token.value,
+      };
+    }
+
+    // 检测是否是一个数组
+      
+    // 想想JavaScript里数组的语法，就是一个[，加若干个元素，再加一个]构成
+    // 至于中间元素要怎么构成，不用管，交给递归，相信递归算法可以帮你返回正确的数组元素
+    if (token.type === "Punctuator" && token.value === "[") {
+      // 跳过[，抽象语法树里[没有意义
+      // 因为在抽象语法树里，不需要关心数组到底是怎样的开头
+      // 你甚至可以在代码生成的时候，用#来包裹数组
+      token = tokens[++current];
+      // 创建数组的抽象语法树树节点表示
+      let node = {
+        type: "ArrayExpression",
+        elements: [],
+      };
+      // while循环直到遇到]，说明数组结束
+      while (!(token.type === "Punctuator" && token.value === "]")) {
+        // 跳过,因为在抽象语法树里不需要
+        if (token.value === ",") {
+          token = tokens[++current];
+          continue;
+        }
+        // 不确定数组元素到底是怎么构成的，直接递归  
+        node.elements.push(walk());
+        token = tokens[current];
+      }
+      // 跳过]
+      current++;
+      // 返回数组类型的节点。
+      return node;
+    }
+
+    // 检测是否是一个对象
+    // 想想对象的语法，就是一个{，加若干个键值对，再加一个}构成
+    // 那键值对的语法呢，就是一个key（标识符），加一个:，加一个value，加一个，
+    if (token.type === "Punctuator" && token.value === "{") {
+      // 跳过{，抽象语法树里{没有意义，原因同上面数组部分
+      token = tokens[++current];
+      // 创建对象的抽象语法树树节点表示
+      let node = {
+        type: "ObjectExpression",
+        properties: [],
+      };
+
+      // while循环直到遇到}，说明对象结束
+      while (!(token.type === "Punctuator" && token.value === "}")) {
+        // 提取key
+        const key = token.value;
+        // 跳过:
+        token = tokens[++current];
+        // 提取value
+        token = tokens[++current];
+        // key和value都有了，可以向对象的properties中添加一个属性
+        node.properties.push({
+          type: "Property",
+          key,
+          // 不确定value到底是怎么构成的，直接递归
+          value: walk(), 
+        });
+        // 此处要求属性最后必须有“,”，否则会有解析异常，可以优化。有些JavaScript代码风格喜欢对象的最后一个属性后不加“,”
+        // 跳过，
+        token = tokens[++current];
+      }
+      // 跳过}
+      current++;
+      // 返回这个节点。
+      return node;
+    }
+
+    // 同样，如果我们没有匹配到以上任何类型，我们抛出一个错误。
+    throw new TypeError(token.type);
+  }
+  // 定义抽象语法树的根节点
+  let ast = {
+    type: "Program",
+    body: [],
+  };
+  // 开始生成
+  while (current < tokens.length) {
+    ast.body.push(walk());
+  }
+  return ast;
+}
+```
+
+### 转换器
+
+这块代码和原文中的实现有一些差异，主要是原文中给原抽象语法树节点增加_context的技巧，在这里不是很适用。
+
+```javascript
+function transformer(ast) {
+  // 为每种类型的抽象语法树节点增加进入和退出方法
+  const visitor = {
+    Literal: {
+      // 当源AST访问到Literal类型节点时，为目标AST生成同样的Literal节点
+      // 这里可以任意定义数据结构，比如可以将type设置为：String
+      enter(node) {
+        return {
+          type: "Literal",
+          value: node.value,
+        };
+      },
+    },
+    Program: {
+      enter(node) {
+        return {
+          type: "Program",
+          body: [],
+        };
+      },
+    },
+    ObjectExpression: {
+      enter(node) {
+        return {
+          type: "ObjectExpression",
+          properties: [],
+        };
+      },
+      // 比如可以在退出时，将所有的properties逆序
+      exit(node) {
+        node.properties.reverse();
+        return node;
+      },
+    },
+    ArrayExpression: {
+      enter(node) {
+        return {
+          type: "ArrayExpression",
+          elements: [],
+        };
+      },
+      // 比如可以在退出时，将所有的elements逆序
+      exit(node) {
+        node.elements.reverse();
+        return node;
+      },
+    },
+    Property: {
+      enter(node) {
+        return {
+          type: "Property",
+          key: node.key,
+          value: null,
+        };
+      },
+    },
+  };
+  
+  // 转换器遍历整个抽象语法树，并对需要调整的节点按照制定方法调整
+  // 所以大体上是一个复制N叉树的算法
+  // 只不过节点结构各有不同，并且需要给每种类型的节点增加转换处理方法
+  function traverser(node) {
+    if (node.type === "Literal") {
+      let copyNode = visitor["Literal"].enter(node);
+      if (visitor[node.type].exit) {
+        copyNode = visitor["Literal"].exit(copyNode);
+      }
+      return copyNode;
+    }
+    let copyNode = visitor[node.type].enter(node);
+    // N叉树的递归遍历
+    // 因为像原抽象语法树里的body，elements和properties等，都是数组类型，里面都可能会有多个节点
+    if (node.type === "Program") {
+      node.body.forEach((child) => {
+        copyNode.body.push(traverser(child));
+      });
+    } else if (node.type === "ObjectExpression") {
+      node.properties.forEach((child) => {
+        copyNode.properties.push(traverser(child));
+      });
+    } else if (node.type === "ArrayExpression") {
+      node.elements.forEach((child) => {
+        copyNode.elements.push(traverser(child));
+      });
+    } else if (node.type === "Property") {
+      copyNode.value = traverser(node.value);
+    }
+    // 子节点递归完后回到当前节点，执行exit方法
+    if (visitor[node.type].exit) {
+      copyNode = visitor[node.type].exit(copyNode);
+    }
+    return copyNode;
+  }
+  
+  const newAst = traverser(ast);
+  return newAst;
+}
+```
+
+### 代码生成
+
+```javascript
+function codeGenerator(node) {
+  // 深度遍历转换后的抽象语法树，将各个节点对应的新的代码拼接起来即可
+  switch (node.type) {
+    case "Program":
+      return node.body.map(codeGenerator).join("\n"); 
+
+    case "ObjectExpression":
+      return "{\n" + node.properties.map(codeGenerator).join(",\n") + "\n}";
+
+    case "ArrayExpression":
+      return "[\n" + node.elements.map(codeGenerator).join(",") + "\n]";
+
+    case "Property":
+      return '"' + node.key + '":' + codeGenerator(node.value) + ""; // JSON格式中，需要给key添加上""
+
+    case "Literal":
+      return node.value;
+
+    // 如果没有匹配，抛出一个错误。
+    default:
+      throw new TypeError(node.type);
+  }
+}
+```
+
+### 运行编译器
+
+```javascript
+const tokens = tokenizer(jsSourceCode);
+// console.log(tokens);
+const ast = parser(tokens);
+// console.log(JSON.stringify(ast));
+const newAst = transformer(ast);
+// console.log(JSON.stringify(newAst));
+const generateCode = codeGenerator(newAst);
+console.log(generateCode);
+```
