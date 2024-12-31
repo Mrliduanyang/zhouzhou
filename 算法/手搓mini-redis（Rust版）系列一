@@ -36,7 +36,7 @@ struct State {
 
 这样看起来，存储键值对的部分就比较完善了。
 
-接下来解决过期时间的问题，希望能有一种数据结构能直接取到最早过期的key，同时要考虑到多个key在同一时刻过期的问题，所以我们需要用BTreeSet加元祖来存储过期时间，如下所示：
+接下来解决过期时间的问题，希望能有一种数据结构能直接取到最早过期的key，同时要考虑到多个key在同一时刻过期的问题，所以我们需要用BTreeSet加元组来存储过期时间，如下所示：
 
 ```rust
 struct State {
@@ -88,7 +88,6 @@ impl Db {
                 pub_sub: HashMap::new(),
                 expirations: BTreeSet::new(),
             }),
-            background_task: Notify::new(),
         });
 
         Db { shared }
@@ -292,8 +291,6 @@ async fn purge_expired_tasks(shared: Arc<Shared>) {
     }
 }
 ```
-
-好的，我来为您总结一下这篇关于手搓mini-redis (Rust版)的文章:
 
 ## 2.总结
 
