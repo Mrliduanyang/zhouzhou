@@ -30,7 +30,7 @@
 
 ### 算法
 
-1. [算法/手搓mini-redis（Rust版）系列一](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/算法/手搓mini-redis（Rust版）系列一.md)
+1. [算法/手搓mini-redis（Rust版）系列一](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/手搓mini-redis（Rust版）系列一.md)
 2. [手搓LZW压缩算法](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/手搓LZW压缩算法.md)
 3. [手搓编译器](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/手搓编译器.md)
 4. [二叉树遍历的统一写法](https://github.com/Mrliduanyang/zhouzhou/blob/main/算法/二叉树遍历的统一写法.md)
