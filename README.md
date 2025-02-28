@@ -45,6 +45,7 @@
 
 ### 杂七杂八
 
-1. [TensorWatch中的错误](https://github.com/Mrliduanyang/zhouzhou/blob/main/杂七杂八/TensorWatch中的错误.md)
-2. [每天一个MMDetection小技巧](https://github.com/Mrliduanyang/zhouzhou/blob/main/杂七杂八/每天一个MMDetection小技巧.md)
-3. [边缘计算DNN推理加速](https://github.com/Mrliduanyang/zhouzhou/blob/main/杂七杂八/边缘计算DNN推理加速.md)
+1. [浏览器运行DeepSeek本地模型.md](https://github.com/Mrliduanyang/zhouzhou/blob/main/杂七杂八/浏览器运行DeepSeek本地模型.md)
+2. [TensorWatch中的错误](https://github.com/Mrliduanyang/zhouzhou/blob/main/杂七杂八/TensorWatch中的错误.md)
+3. [每天一个MMDetection小技巧](https://github.com/Mrliduanyang/zhouzhou/blob/main/杂七杂八/每天一个MMDetection小技巧.md)
+4. [边缘计算DNN推理加速](https://github.com/Mrliduanyang/zhouzhou/blob/main/杂七杂八/边缘计算DNN推理加速.md)
