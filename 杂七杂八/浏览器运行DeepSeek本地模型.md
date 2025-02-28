@@ -39,7 +39,7 @@ npm run dev
 
 这就带来个新的问题，如果在本地双击html文件打开时，Web Worker会因为跨域限制而无法加载脚本。浏览器要求Web Worker的脚本必须通过 HTTP/HTTPS 协议加载，而不是直接从本地文件系统加载。
 
-所以仍然需要一个HTTP服务器来提供文件服务。下载文件后，在index.html所在路径下执行
+所以仍然需要一个HTTP服务器来提供文件服务。下载文件（https://github.com/Mrliduanyang/zhouzhou/blob/main/杂七杂八/dist.tar.gz），解压，然后在index.html所在路径下执行
 
 ```shell
 # Mac和Linux系统都有基本的Python环境，Windows系统可自行下载安装Python环境
